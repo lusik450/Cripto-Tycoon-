@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CRYPTO FARM TYCOON</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+/* ============================================================
+   БАЗА / CRT-ЭФФЕКТЫ
+   ============================================================ */
+*{box-sizing:border-box;}
+:root{
+  --green:#00ff88;
+  --pink:#ff0080;
+  --amber:#ffb000;
+  --purple:#1a0033;
+  --bg:#05010a;
+}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  min-height:100vh;
+  background-color:#05010a;
+  background-image:
+    radial-gradient(ellipse at 50% -10%, rgba(26,0,51,0.95) 0%, rgba(5,1,10,0) 65%),
+    radial-gradient(ellipse at 50% 120%, rgba(0,80,50,0.28) 0%, rgba(5,1,10,0) 60%);
+  color:var(--green);
+  font-family:'VT323','Courier New',monospace;
+  font-size:19px;
+  line-height:1.25;
+  letter-spacing:0.5px;
+  overflow-x:hidden;
+}
+
+body::before{
+  content:"";
+  position:fixed;inset:0;
+  pointer-events:none;
+  z-index:9000;
+  background:repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,0.30) 0px,
+    rgba(0,0,0,0.30) 1px,
+    rgba(0,0,0,0) 1px,
+    rgba(0,0,0,0) 3px
+  );
+  mix-blend-mode:multiply;
+  opacity:.8;
+}
+body::after{
+  content:"";
+  position:fixed;inset:0;
+  pointer-events:none;
+  z-index:9001;
+  background:radial-gradient(ellipse at center, rgba(0,0,0,0) 42%, rgba(0,0,0,0.88) 100%);
+}
+
+#app{
+  position:relative;
+  z-index:1;
+  padding-bottom:16px;
+  animation:flicker 7s infinite;
+}
+@keyframes flicker{
+  0%,94%,100%{opacity:1;}
+  95%{opacity:.93;}
+  96%{opacity:1;}
+  97%{opacity:.88;}
+  98%{opacity:1;}
+}
+@keyframes blink{50%{opacity:0;}}
+
+/* ============================================================
+   ШАПКА
+   ============================================================ */
+.hud{
+  max-width:1400px;
+  margin:0 auto;
+  padding:14px 14px 8px;
+}
+.hud-title{
+  display:flex;
+  align-items:baseline;
+  gap:14px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
+.logo{
+  font-size:34px;
+  color:var(--pink);
+  letter-spacing:3px;
+  text-shadow:0 0 10px rgba(255,0,128,.85), 0 0 26px rgba(255,0,128,.45);
+}
+.logo::after{content:"_";animation:blink 1s steps(1) infinite;}
+.sub{color:rgba(0,255,136,.45);font-size:15px;}
+
+.hud-stats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+}
+@media(max-width:760px){ .hud-stats{grid-template-columns:repeat(2,1fr);} }
+.stat{
+  background:linear-gradient(180deg, rgba(26,0,51,.65), rgba(5,1,10,.92));
+  border:1px solid rgba(0,255,136,.3);
+  box-shadow:inset 0 0 18px rgba(0,255,136,.06);
+  border-radius:3px;
+  padding:6px 10px;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.stat .lbl{font-size:13px;color:rgba(0,255,136,.5);letter-spacing:1.5px;}
+.stat .val{font-size:24px;color:var(--green);text-shadow:0 0 10px rgba(0,255,136,.65);}
+
+.progress-wrap{margin-top:12px;}
+.progress-label{
+  display:flex;justify-content:space-between;
+  font-size:15px;letter-spacing:1.5px;
+  color:rgba(255,176,0,.85);
+  margin-bottom:4px;
+}
+.progress{
+  height:16px;
+  background:#07020f;
+  border:1px solid rgba(0,255,136,.35);
+  border-radius:2px;
+  overflow:hidden;
+}
+.progress-bar{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,#00ff88,#ffb000,#ff0080);
+  box-shadow:0 0 14px rgba(0,255,136,.75);
+  transition:width .2s linear;
+}
+
+/* ============================================================
+   ПАНЕЛИ / СЕТКА
+   ============================================================ */
+.layout{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  max-width:1400px;
+  margin:0 auto;
+  padding:0 14px 14px;
+}
+@media(max-width:920px){ .layout{grid-template-columns:1fr;} }
+.col{display:flex;flex-direction:column;gap:14px;min-width:0;}
+
+.panel{
+  position:relative;
+  background:linear-gradient(180deg, rgba(26,0,51,.55), rgba(5,1,10,.92));
+  border:1px solid rgba(0,255,136,.32);
+  box-shadow:0 0 12px rgba(0,255,136,.13), inset 0 0 26px rgba(0,255,136,.045);
+  border-radius:4px;
+  padding:10px 12px 12px;
+}
+.panel h2{
+  margin:0 0 10px;
+  font-size:20px;
+  font-weight:normal;
+  color:var(--amber);
+  text-transform:uppercase;
+  letter-spacing:2px;
+  text-shadow:0 0 9px rgba(255,176,0,.6);
+  border-bottom:1px solid rgba(255,176,0,.25);
+  padding-bottom:4px;
+}
+.panel h2::after{content:"_";animation:blink 1.1s steps(1) infinite;}
+
+.sub-title{
+  margin:12px 0 6px;
+  font-size:14px;
+  letter-spacing:2px;
+  color:rgba(255,0,128,.85);
+  border-bottom:1px dashed rgba(255,0,128,.3);
+  padding-bottom:3px;
+}
+
+/* ============================================================
+   КНОПКИ
+   ============================================================ */
+button{
+  font-family:inherit;
+  font-size:16px;
+  letter-spacing:1px;
+  background:linear-gradient(180deg,#0d2b1d,#061410);
+  color:var(--green);
+  border:1px solid rgba(0,255,136,.5);
+  border-radius:3px;
+  padding:4px 10px;
+  cursor:pointer;
+  transition:transform .06s, box-shadow .15s, background .15s, border-color .15s;
+  box-shadow:0 3px 0 #03231a, 0 0 8px rgba(0,255,136,.18);
+}
+button:hover:not(:disabled){
+  background:linear-gradient(180deg,#124a2f,#082014);
+  box-shadow:0 3px 0 #03231a, 0 0 16px rgba(0,255,136,.5);
+  border-color:var(--green);
+}
+button:active:not(:disabled){
+  transform:translateY(3px);
+  box-shadow:0 0 0 #03231a, 0 0 16px rgba(0,255,136,.6);
+}
+button:disabled{opacity:.32;cursor:not-allowed;filter:grayscale(.5);}
+button.danger{border-color:rgba(255,0,128,.6);color:var(--pink);box-shadow:0 3px 0 #2a0018,0 0 8px rgba(255,0,128,.2);}
+button.danger:hover:not(:disabled){box-shadow:0 3px 0 #2a0018,0 0 16px rgba(255,0,128,.55);border-color:var(--pink);}
+
+/* ============================================================
+   МАГАЗИН
+   ============================================================ */
+.shop-list{display:flex;flex-direction:column;gap:8px;}
+.shop-card{
+  border:1px solid rgba(0,255,136,.22);
+  background:linear-gradient(90deg, rgba(0,255,136,.055), rgba(0,0,0,.28));
+  border-radius:3px;
+  padding:8px 10px;
+  transition:border-color .2s, box-shadow .2s, opacity .2s;
+}
+.shop-card:hover{border-color:rgba(0,255,136,.6);box-shadow:0 0 14px rgba(0,255,136,.16);}
+.shop-card.cant-buy{opacity:.55;}
+.sc-head{display:flex;align-items:center;gap:8px;font-size:19px;color:#d9ffe9;}
+.sc-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sc-owned{color:var(--amber);font-size:16px;text-shadow:0 0 8px rgba(255,176,0,.5);}
+.sc-stats{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;color:rgba(0,255,136,.6);margin:4px 0;}
+.sc-stats b{color:var(--green);font-weight:normal;}
+.sc-eff{color:rgba(255,0,128,.75);}
+.sc-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.sc-price{font-size:20px;color:var(--amber);text-shadow:0 0 8px rgba(255,176,0,.55);}
+
+/* ============================================================
+   СТОЙКИ
+   ============================================================ */
+.rigs-summary{
+  display:flex;gap:14px;flex-wrap:wrap;
+  font-size:15px;color:rgba(0,255,136,.6);
+  margin-bottom:8px;
+}
+.rigs-summary b{color:var(--green);font-weight:normal;}
+.rigs-list{display:flex;flex-direction:column;gap:6px;}
+.rig-row{
+  display:flex;align-items:center;gap:8px;
+  border:1px solid rgba(0,255,136,.18);
+  background:rgba(0,0,0,.3);
+  border-radius:3px;
+  padding:5px 8px;
+  font-size:16px;
+  flex-wrap:wrap;
+}
+.rr-name{flex:1;min-width:90px;color:#d9ffe9;}
+.rr-count{color:var(--amber);}
+.rr-refund{color:rgba(0,255,136,.6);font-size:14px;}
+.empty{
+  color:rgba(0,255,136,.35);
+  font-size:16px;
+  padding:10px 0;
+  text-align:center;
+}
+
+/* ============================================================
+   ТЕРМИНАЛ МАЙНИНГА
+   ============================================================ */
+.mining-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.ms{
+  background:rgba(0,255,136,.05);
+  border:1px solid rgba(0,255,136,.2);
+  border-radius:3px;
+  padding:5px 8px;
+  display:flex;flex-direction:column;gap:1px;
+  min-width:0;
+}
+.ms span{font-size:12px;color:rgba(0,255,136,.5);letter-spacing:1px;}
+.ms b{
+  font-size:19px;font-weight:normal;color:var(--green);
+  text-shadow:0 0 8px rgba(0,255,136,.5);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.elec-box{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.elec-box .ms b{color:var(--amber);text-shadow:0 0 8px rgba(255,176,0,.5);}
+.tariff input{
+  background:#07020f;
+  border:1px solid rgba(255,176,0,.4);
+  color:var(--amber);
+  font-family:inherit;
+  font-size:18px;
+  padding:1px 6px;
+  width:100%;
+  border-radius:2px;
+  outline:none;
+}
+.tariff input:focus{border-color:var(--amber);box-shadow:0 0 10px rgba(255,176,0,.4);}
+
+.coin-select{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.coin-btn{
+  display:flex;flex-direction:column;gap:0;padding:5px 2px;
+  font-size:14px;line-height:1.1;
+}
+.cb-sym{font-size:17px;letter-spacing:1px;}
+.cb-rate{font-size:11px;opacity:.65;white-space:nowrap;overflow:hidden;}
+.coin-btn.active{
+  border-color:var(--pink);color:var(--pink);
+  box-shadow:0 0 14px rgba(255,0,128,.5), inset 0 0 16px rgba(255,0,128,.16);
+}
+.coin-btn.active:hover{box-shadow:0 0 18px rgba(255,0,128,.7), inset 0 0 16px rgba(255,0,128,.2);}
+
+/* Портфель */
+.portfolio{display:flex;flex-direction:column;gap:8px;}
+.pf-row{
+  border:1px solid rgba(0,255,136,.18);
+  border-radius:3px;
+  padding:6px 8px;
+  background:rgba(0,0,0,.28);
+}
+.pf-top{display:flex;justify-content:space-between;gap:8px;font-size:16px;align-items:baseline;}
+.pf-sym{font-weight:bold;letter-spacing:1.5px;}
+.pf-amt{color:#d9ffe9;font-size:15px;overflow:hidden;text-overflow:ellipsis;}
+.pf-usd{color:var(--amber);font-size:15px;white-space:nowrap;}
+.pf-controls{display:flex;align-items:center;gap:8px;margin-top:5px;}
+.pf-slider{
+  flex:1;min-width:0;height:14px;
+  accent-color:#00ff88;
+  cursor:pointer;
+  background:transparent;
+}
+.pf-pct{font-size:13px;color:rgba(0,255,136,.6);width:42px;text-align:right;}
+.pf-controls button{padding:2px 8px;font-size:13px;}
+
+/* ============================================================
+   РЫНОК
+   ============================================================ */
+.market-timer{
+  font-size:14px;color:rgba(0,255,136,.5);
+  margin-bottom:8px;letter-spacing:1px;
+}
+.market-timer b{color:var(--amber);font-weight:normal;}
+.market-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+@media(max-width:560px){ .market-list{grid-template-columns:1fr;} }
+.market-card{
+  border:1px solid rgba(255,0,128,.25);
+  background:rgba(26,0,51,.35);
+  border-radius:3px;
+  padding:7px 8px;
+}
+.mc-head{display:flex;justify-content:space-between;align-items:baseline;gap:6px;font-size:16px;}
+.mc-sym{font-weight:bold;letter-spacing:1.5px;}
+.mc-price{color:#fff;text-shadow:0 0 8px rgba(255,255,255,.25);font-size:15px;}
+.mc-change{font-size:14px;letter-spacing:.5px;}
+.up{color:#00ff88;text-shadow:0 0 8px rgba(0,255,136,.6);}
+.down{color:#ff0080;text-shadow:0 0 8px rgba(255,0,128,.6);}
+.mc-spark-wrap{position:relative;height:44px;width:100%;margin-top:4px;}
+.mc-spark-wrap canvas{display:block;width:100%!important;height:44px!important;}
+.mc-foot{display:flex;justify-content:space-between;font-size:12px;color:rgba(0,255,136,.45);margin-top:2px;}
+
+/* ============================================================
+   ЛОГ
+   ============================================================ */
+.log-panel{max-width:1400px;margin:0 auto;padding:0 14px 22px;}
+.log-title{font-size:15px;letter-spacing:2px;color:var(--amber);margin-bottom:4px;}
+.log{
+  height:112px;overflow-y:auto;
+  border:1px solid rgba(0,255,136,.25);
+  background:rgba(0,0,0,.55);
+  border-radius:3px;
+  padding:6px 10px;
+  font-size:15px;
+  color:rgba(0,255,136,.8);
+}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.log::-webkit-scrollbar{width:8px;}
+.log::-webkit-scrollbar-track{background:rgba(0,0,0,.4);}
+.log::-webkit-scrollbar-thumb{background:rgba(0,255,136,.4);border-radius:4px;}
+
+/* ============================================================
+   УВЕДОМЛЕНИЯ
+   ============================================================ */
+.notifications{
+  position:fixed;top:14px;right:14px;
+  z-index:10000;
+  display:flex;flex-direction:column;gap:8px;
+  width:min(340px, calc(100vw - 28px));
+  pointer-events:none;
+}
+.toast{
+  border:1px solid var(--green);
+  background:rgba(5,20,12,.96);
+  box-shadow:0 0 18px rgba(0,255,136,.4);
+  border-radius:3px;
+  padding:8px 12px;
+  animation:toastIn .25s ease-out, glitch .8s steps(2) 1;
+}
+.toast-title{
+  font-size:18px;letter-spacing:1.5px;color:var(--green);
+  text-shadow:0 0 10px rgba(0,255,136,.85);
+}
+.toast-msg{font-size:14px;color:rgba(0,255,136,.7);}
+.toast-pump{border-color:var(--green);}
+.toast-dump{border-color:var(--pink);box-shadow:0 0 18px rgba(255,0,128,.45);}
+.toast-dump .toast-title{color:var(--pink);text-shadow:0 0 10px rgba(255,0,128,.9);}
+.toast-warn{border-color:var(--amber);box-shadow:0 0 18px rgba(255,176,0,.4);}
+.toast-warn .toast-title{color:var(--amber);text-shadow:0 0 10px rgba(255,176,0,.9);}
+.toast-sell{border-color:var(--amber);box-shadow:0 0 18px rgba(255,176,0,.4);}
+.toast-sell .toast-title{color:var(--amber);text-shadow:0 0 10px rgba(255,176,0,.9);}
+.toast.out{animation:toastOut .4s forwards;}
+@keyframes toastIn{from{transform:translateX(120%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@keyframes toastOut{to{transform:translateX(120%);opacity:0;}}
+@keyframes glitch{
+  0%,100%{filter:none;transform:translateX(0);}
+  20%{filter:hue-rotate(45deg) saturate(2);transform:translateX(-2px);}
+  45%{transform:translateX(2px);}
+  70%{filter:hue-rotate(-45deg);transform:translateX(-1px);}
+}
+
+/* ============================================================
+   ФИНАЛЬНЫЙ ЭКРАН
+   ============================================================ */
+.win-screen{
+  position:fixed;inset:0;z-index:10002;
+  background:rgba(3,0,8,.95);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+  overflow-y:auto;
+}
+.win-screen.hidden{display:none;}
+.win-box{
+  max-width:660px;width:100%;
+  border:2px solid var(--amber);
+  background:linear-gradient(180deg, rgba(26,0,51,.92), rgba(5,1,10,.99));
+  box-shadow:0 0 44px rgba(255,176,0,.45);
+  padding:24px;
+  text-align:center;
+  border-radius:4px;
+}
+.win-box h1{
+  margin:0 0 6px;
+  font-size:34px;font-weight:normal;
+  color:var(--amber);
+  text-shadow:0 0 22px rgba(255,176,0,.95);
+  letter-spacing:2px;
+}
+.win-sub{color:rgba(0,255,136,.7);font-size:17px;margin:0 0 18px;}
+.win-stats{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:8px;text-align:left;margin-bottom:20px;
+}
+.win-stats .ws{
+  border:1px solid rgba(0,255,136,.25);
+  background:rgba(0,0,0,.35);
+  padding:6px 10px;border-radius:3px;
+  font-size:16px;
+}
+.win-stats .ws span{display:block;font-size:12px;color:rgba(0,255,136,.5);letter-spacing:1px;}
+.win-stats .ws b{font-weight:normal;color:var(--green);}
+.big-btn{
+  font-size:22px;padding:10px 26px;
+  border-color:var(--amber);color:var(--amber);
+  box-shadow:0 4px 0 #331f00, 0 0 20px rgba(255,176,0,.35);
+}
+.big-btn:hover:not(:disabled){
+  background:linear-gradient(180deg,#4a3300,#221600);
+  box-shadow:0 4px 0 #331f00, 0 0 28px rgba(255,176,0,.7);
+  border-color:var(--amber);
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header class="hud">
+    <div class="hud-title">
+      <span class="logo">CRYPTO FARM TYCOON</span>
+      <span class="sub">// underground mining terminal v1.0</span>
+    </div>
+    <div class="hud-stats">
+      <div class="stat"><span class="lbl">💵 БАЛАНС</span><span class="val" id="hud-balance">$500.00</span></div>
+      <div class="stat"><span class="lbl">⚡ МОЩНОСТЬ</span><span class="val" id="hud-power">0 Вт</span></div>
+      <div class="stat"><span class="lbl">🧮 HASHRATE</span><span class="val" id="hud-hash">0 MH/s</span></div>
+      <div class="stat"><span class="lbl">⏱ ВРЕМЯ</span><span class="val" id="hud-time">00:00:00</span></div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>ПРОГРЕСС ДО $1,000,000</span>
+        <span id="progress-pct">0.00%</span>
+      </div>
+      <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="col">
+      <section class="panel">
+        <h2>Магазин оборудования</h2>
+        <div id="shop-list" class="shop-list"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Мои стойки</h2>
+        <div id="rigs-summary" class="rigs-summary"></div>
+        <div id="rigs-list" class="rigs-list"></div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="panel">
+        <h2>Терминал майнинга</h2>
+        <div class="mining-stats">
+          <div class="ms"><span>HASHRATE</span><b id="m-hash">0 MH/s</b></div>
+          <div class="ms"><span>ДОБЫЧА</span><b id="m-rate">+0 BTC/с</b></div>
+          <div class="ms"><span>≈ USD/СЕК</span><b id="m-usd">$0.00</b></div>
+        </div>
+
+        <div class="sub-title">АКТИВНАЯ МОНЕТА</div>
+        <div class="coin-select" id="coin-select"></div>
+
+        <div class="sub-title">ЭЛЕКТРИЧЕСТВО</div>
+        <div class="elec-box">
+          <div class="ms"><span>ПОТРЕБЛЕНИЕ</span><b id="e-power">0 Вт</b></div>
+          <div class="ms"><span>СЧЁТ / ЧАС</span><b id="e-hour">$0.00</b></div>
+          <div class="ms"><span>СЧЁТ / СУТКИ</span><b id="e-day">$0.00</b></div>
+          <div class="ms tariff"><span>ТАРИФ $/КВТ·Ч</span><input id="tariff" type="number" step="0.01" min="0.01" max="5" value="0.15"></div>
+        </div>
+
+        <div class="sub-title">ПОРТФЕЛЬ</div>
+        <div id="portfolio" class="portfolio"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Рынок криптовалют</h2>
+        <div class="market-timer">Следующее обновление через <b id="m-timer">30</b> с</div>
+        <div id="market-list" class="market-list"></div>
+      </section>
+    </div>
+  </div>
+
+  <footer class="log-panel">
+    <div class="log-title">// SYSTEM LOG</div>
+    <div id="log" class="log"></div>
+  </footer>
+</div>
+
+<div id="notifications" class="notifications"></div>
+
+<div id="win-screen" class="win-screen hidden">
+  <div class="win-box">
+    <h1>🏆 ТЫ — КРИПТО-МАГНАТ</h1>
+    <p class="win-sub">Цель $1,000,000 достигнута. Подвал твой.</p>
+    <div id="win-stats" class="win-stats"></div>
+    <button id="win-restart" class="big-btn">НАЧАТЬ ЗАНОВО</button>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   CRYPTO FARM TYCOON — исправленная версия
+   Модули: State, Market, Farm, UI, Tick, Save, Game
+   ================================================================ */
+(function () {
+'use strict';
+
+/* ================================================================
+   УТИЛИТЫ ФОРМАТИРОВАНИЯ
+   ================================================================ */
+const $  = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+const pad = n => String(n).padStart(2, '0');
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+function fmtMoney(n) {
+  if (n === undefined || n === null || !isFinite(n)) n = 0;
+  const neg = n < 0;
+  const a = Math.abs(n);
+  let s;
+  if (a >= 1000)      s = a.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  else if (a >= 0.01) s = a.toFixed(2);
+  else if (a === 0)   s = '0.00';
+  else                s = a.toFixed(6);
+  return (neg ? '-$' : '$') + s;
+}
+
+function fmtCoin(n) {
+  if (!isFinite(n) || n === 0) return '0.00000000';
+  if (n >= 1000) return n.toLocaleString('ru-RU', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+  if (n >= 1) return n.toFixed(4);
+  if (n >= 0.0001) return n.toFixed(8);
